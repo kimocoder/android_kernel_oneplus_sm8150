@@ -1956,7 +1956,6 @@ static void qcom_glink_notif_reset(void *data)
 	spin_unlock_irqrestore(&glink->idr_lock, flags);
 }
 
-
 static void qcom_glink_cancel_rx_work(struct qcom_glink *glink)
 {
 	struct glink_defer_cmd *dcmd;
@@ -2054,6 +2053,15 @@ struct qcom_glink *qcom_glink_native_probe(struct device *dev,
 		irqflags = IRQF_TRIGGER_RISING;
 	else
 		irqflags = IRQF_SHARED;
+
+	ret = devm_request_irq(dev, irq,
+			       qcom_glink_native_intr,
+			       irqflags,
+			       "glink-native", glink);
+	if (ret) {
+		dev_err(dev, "failed to request IRQ\n");
+		goto unregister;
+	}
 
 	for (i = 0; i < ARRAY_SIZE(sub_name); i++) {
 		if (strcmp(sub_name[i].g_name, glink->name) == 0) {

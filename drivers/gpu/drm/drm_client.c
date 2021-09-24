@@ -27,7 +27,6 @@
  * DOC: overview
  *
  * This library provides support for clients running in the kernel like fbdev and bootsplash.
- * Currently it's only partially implemented, just enough to support fbdev.
  *
  * GEM drivers which provide a GEM based dumb buffer with a virtual address are supported.
  */
@@ -80,7 +79,6 @@ EXPORT_SYMBOL(drm_client_close);
 int drm_client_init(struct drm_device *dev, struct drm_client_dev *client,
 		    const char *name, const struct drm_client_funcs *funcs)
 {
-	bool registered;
 	int ret;
 
 	if (!drm_core_check_feature(dev, DRIVER_MODESET) ||
@@ -94,16 +92,19 @@ int drm_client_init(struct drm_device *dev, struct drm_client_dev *client,
 	client->name = name;
 	client->funcs = funcs;
 
-	ret = drm_client_open(client);
+	ret = drm_client_modeset_create(client);
 	if (ret)
 		goto err_put_module;
+
+	ret = drm_client_open(client);
+	if (ret)
+		goto err_free;
 
 	drm_dev_ref(dev);
 
 	return 0;
-
-err_close:
-	drm_client_close(client);
+err_free:
+	drm_client_modeset_free(client);
 err_put_module:
 	if (funcs)
 		module_put(funcs->owner);
@@ -152,6 +153,7 @@ void drm_client_release(struct drm_client_dev *client)
 
 	DRM_DEV_DEBUG_KMS(dev->dev, "%s\n", client->name);
 
+	drm_client_modeset_free(client);
 	drm_client_close(client);
 	drm_dev_unref(dev);
 	if (client->funcs)

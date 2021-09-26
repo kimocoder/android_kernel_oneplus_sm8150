@@ -1208,7 +1208,7 @@ static int smb5_usb_get_prop(struct power_supply *psy,
 		if (chg->dash_on)
 			val->intval = 3000000;
 		else
-			rc = smblib_get_prop_input_current_settled(chg, val);
+			val->intval = get_effective_result(chg->usb_icl_votable);
 		break;
 	case POWER_SUPPLY_PROP_TYPE:
 		val->intval = POWER_SUPPLY_TYPE_USB_PD;
